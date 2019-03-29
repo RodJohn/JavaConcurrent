@@ -3,6 +3,11 @@
 
   破坏缓存
   限制重排序
+  
+  
+  volatile变量规则：对一个volatile域的写，happens-before于任意后续对这个volatile域的
+读。
+
 
 
 特性
