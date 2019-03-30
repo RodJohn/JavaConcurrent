@@ -1,4 +1,14 @@
 
+
+# 优点
+
+volatile是轻量级的synchronized，
+它在多处理器开发中保证了共享变量的“可见性”。
+比synchronized的使用和执行成本更低，因为它不会引起线程上下文的切换和调度。
+
+
+
+
 # 特性
 
   破坏缓存
@@ -7,7 +17,8 @@
   
   volatile变量规则：对一个volatile域的写，happens-before于任意后续对这个volatile域的
 读。
-
+如果一个字段被声明成volatile，Java线程内存
+模型确保所有线程看到这个变量的值是一致的。
 
 
 特性
