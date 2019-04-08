@@ -19,6 +19,10 @@ tryAcquire(int acquires)方法时返回了false，导致该线程被阻塞。简
 
 ## 结构
 
+结构图
+
+![](https://github.com/RodJohn/JavaConcurrent/blob/master/image/%E5%B9%B6%E5%8F%91%E9%94%81_ReentranLock.png)
+
 ReentrantLock ，实现 Lock 接口，重入锁。
 
 构造方法
