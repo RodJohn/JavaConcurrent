@@ -9,6 +9,13 @@ Doug Lea 大神在实现同步组件时，大量使用CAS 技术，鬼斧神工�
 
 CAS 虽然高效地解决了原子操作，
 
+# Unsafe
+
+public final native boolean compareAndSwapInt(Object var1, long var2, int var4, int var5);
+该方法为本地方法，有四个参数，分别代表：对象、对象的地址、预期值、修改值
+
+
+
 # CPU 原子操作
 
 CAS 可以保证一次的读-改-写操作是原子操作，在单处理器上该操作容易实现，但是在多处理器上实现就有点儿复杂了。
