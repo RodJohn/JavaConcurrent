@@ -5,6 +5,9 @@ Doug Lea 大神在实现同步组件时，大量使用CAS 技术，鬼斧神工�
 整个 AQS 同步组件、Atomic 原子类操作等等都是基 CAS 实现的，甚至 ConcurrentHashMap 在 JDK 1.8 的版本中，也调整为 CAS + synchronized 。
 可以说，CAS 是整个 J.U.C 的基石。
 
+这些类都是使用非阻塞算法 CAS 现的 ，相
+比使用锁 现原 性操作这在性能上有很大提高
+
 # 作用
 
 CAS 虽然高效地解决了原子操作，
