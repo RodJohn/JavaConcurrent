@@ -1,15 +1,40 @@
+# 同步队列
 
 
 
-当前线程（Node）进入同步队列后，
-就会进入一个自旋的过程，每个节点都会自省地观察，
-当条件满足，获取到同步状态后，就可以从这个自旋过程中退出，否则会一直执行下去。
+作用
 
-当前线程如果获取同步状态失败时，AQS则会将当前线程已经等待状态等信息构造成一个节点（Node）并将其加入到CLH同步队列，同时会阻塞当前线程
-当同步状态释放时，会把首节点唤醒（公平锁），使其再次尝试获取同步状态。
+	当前线程如果获取同步状态失败时，
+	AQS则会将当前线程已经等待状态等信息构造成一个节点（Node）并将其加入到CLH同步队列，
+	就会进入一个自旋的过程，每个节点都会自省地观察，
+	
+	
+	当同步状态释放时，会把首节点唤醒（公平锁），使其再次尝试获取同步状态。
+
+
+# 
+
+
+QS IFO 的双向队列，其内部通过节点 head tail
+首和队尾元素，队列元素的类型为 ode 其中 Node 中的 thread 变量用来存放进入 AQS
+队列里面的线程：
+
+
 
 
 # Node
+
+prev 记录当前节点的前驱节点， next 记录当前节点的后继节点
+
+SHARED 用来标记该线程是获取共 资源时被阻挂起后放入 QS 队列的， 
+EXCLUSIVE 用来标记线程是 取独占资源时被挂起后放入AQS 队列的
+
+waitStatu 记录当前线程等待状态，
+CANCELLED （线程被取消了）、
+SIGNAL 线程需要被唤醒）、 
+ONDITION （线程在条件队列里面等待〉
+PROPAGATE （释放共享资源时需要通知其他节点〕；
+
 
 	static final class Node {
 
@@ -86,8 +111,10 @@ predecessor
 
 入列
 
-需要考虑并发的情况。它通过 CAS 的方式，来保证正确的添加 Node
+	通过 CAS 的方式，来保证并发下正确的添加 Node
 
+
+代码
 
 	private Node addWaiter(Node mode) {
 	   // 新建节点
@@ -134,16 +161,22 @@ predecessor
 		}
 	}
 
+流程
+
+	通过CAS在同步队列尾部添加节点
+	如果队列为空,则先添加一个空节点为头结点
 
 # setHead
 
 出列
 
-private void setHead(Node node) {
-    head = node;
-    node.thread = null;
-    node.prev = null;
-}
+代码
+
+	private void setHead(Node node) {
+	    head = node;
+	    node.thread = null;
+	    node.prev = null;
+	}
 
 
 
