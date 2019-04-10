@@ -1,25 +1,12 @@
 
-在 AQS 中维护着一个 FIFO 的同步队列。
 
-当线程获取同步状态失败后，则会加入到同步队列的对尾，并一直保持着自旋。
+# Acquire
 
-在自旋时，会判断其前驱节点是否为首节点，如果为首节点则不断尝试获取同步状态，获取成功则退出CLH同步队列。
-靠前驱节点判断当前线程是否应该被阻塞
+作用
 
-当线程执行完逻辑后，会释放同步状态，释放后会唤醒其后继节点。
-
-
-入队和出队
-
-
-# acquire(独占式同步状态获取)
+	独占式获取锁
 	
-	尝试获取锁（tryAcquire）
-	如果获取成功
-	如果获取失败，
-	将当前线程加到同步队列尾部（addWaiter）。
-	并且自旋直到获得同步状态成功
-	/当前线程的前驱节点是头结点，且同步状态成功
+代码
 
 	public final void acquire(int arg) {
 	  if (!tryAcquire(arg) &&
@@ -27,19 +14,31 @@
 		  selfInterrupt();
 	}
 
+流程
+
+	尝试获取锁（tryAcquire）
+	如果获取失败，
+	将当前线程加到同步队列尾部（addWaiter）
+	并且自旋直到获得同步状态成功（acquireQueued）（当前线程的前驱节点是头结点时，会再次尝试获取锁）
+	同时也会检测线程是否需要休眠
+	
+
+
 
 ## tryAcquire
 
-	tryAcquire(int arg) 方法，需要自定义同步组件自己实现，该方法必须要保证线程安全的获取同步状态 
+	tryAcquire(int arg) 
+	需要自定义同步组件自己实现，该方法必须要保证线程安全的获取同步状态 
 
 ## addWaiter
 
-	将当前线程加入到 CLH 同步队列尾部。
+	将当前线程加入到 CLH 同步队列尾部
+	（AQS内部Node的方法）
 
 ## acquireQueued
 
 	自旋直到获得同步状态成功
-
+	如果发现当前线程的前驱节点是头结点，且同步状态成功
 
 	final boolean acquireQueued(final Node node, int arg) {
 		// 记录是否获取同步状态成功
@@ -131,9 +130,13 @@
 
 
 
-# release(独占式同步状态释放)
+# release
 
-	当线程获取同步状态后，执行完相应逻辑后，就需要释放同步状态
+作用
+
+	释放独占式锁
+
+代码
 
 	public final boolean release(int arg) {
 		if (tryRelease(arg)) {
@@ -144,6 +147,11 @@
 		}
 		return false;
 	}
+	
+流程
+
+	释放锁
+	唤醒同步队列的头结点
 
 ## tryRelease
 
