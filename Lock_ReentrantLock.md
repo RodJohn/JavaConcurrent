@@ -1,4 +1,6 @@
 
+独占锁就是在同一时刻只能有一个线程获取到锁，而其他获取锁的线程只能
+处于同步队列中等待，只有获取锁的线程释放了锁，后继的线程才能够获取锁
 
 重入锁ReentrantLock，顾名思义，就是支持重进入的锁，它表示该锁能够支持一个线程对
 资源的重复加锁。除此之外，该锁的还支持获取锁时的公平和非公平性选择。
@@ -19,11 +21,15 @@ tryAcquire(int acquires)方法时返回了false，导致该线程被阻塞。简
 
 ## 结构
 
-结构图
 
 ![](https://github.com/RodJohn/JavaConcurrent/blob/master/image/%E5%B9%B6%E5%8F%91%E9%94%81_ReentranLock.png)
 
-ReentrantLock ，实现 Lock 接口，重入锁。
+
+	ReentrantLock委托内部类Sync实现Lock接口
+	重入锁。
+	
+	
+## 方法	
 
 构造方法
  
@@ -34,11 +40,6 @@ ReentrantLock ，实现 Lock 接口，重入锁。
 	public ReentrantLock(boolean fair) {
 		sync = fair ? new FairSync() : new NonfairSync();
 	}
-
-
-## 原理
-
-	ReentrantLock 的实现方法，基本是对 Sync 的调用。
 
 lock
 
@@ -77,7 +78,11 @@ newCondition
 
 ## nonfairTryAcquire
 
+作用
+
 	nonfairTryAcquire(int acquires) 方法，非公平锁的方式获得锁
+
+代码
 
 	final boolean nonfairTryAcquire(int acquires) {
 		//当前线程
@@ -104,6 +109,9 @@ newCondition
 		return false;
 	}
 
+流程
+
+
 ## tryRelease
 
 
@@ -127,15 +135,13 @@ newCondition
 # NonfairSync
 
 	NonfairSync实现 Sync 抽象类，非公平锁实现类。
+	
+	lock和tryAchive都是非公平的，直接使用CAS进行抢占锁
+	
 
 ## lock
 
-	#lock() 实现方法，首先基于 AQS state 进行 CAS 操作，将 0 => 1 。
-	若成功，则获取锁成功。若失败，执行 AQS 的正常的同步状态获取逻辑。
-	优先基于 AQS state 进行 CAS 操作，已经能体现出非公平锁的特点。
-	因为，此时有可能有 N + 1 个线程正在获得锁，其中 1 个线程已经获得到锁，释放的瞬间，恰好被新的线程抢夺到，而不是排队的 N 个线程。
-
-
+代码
 
 	@Override
 	final void lock() {
@@ -145,10 +151,17 @@ newCondition
 			acquire(1);
 	}
 
-## tryAcquire
+流程
 
-	tryAcquire(int acquires) 实现方法，非公平的方式，获得同步状态。代码如下：
-	直接调用 #nonfairTryAcquire(int acquires) 方法，非公平锁的方式获得锁。
+
+	通过CAS操作抢占锁
+	若成功，则设置当前线程为排他线程
+	若失败，执行AQS的独占式抢占锁
+	先进行CAS抢占，已经能体现出非公平锁的特点。
+	因为，此时有可能有 N + 1 个线程正在获得锁，其中 1 个线程已经获得到锁，释放的瞬间，恰好被新的线程抢夺到，而不是排队的 N 个线程。
+
+
+## tryAcquire
 
 	protected final boolean tryAcquire(int acquires) {
 		return nonfairTryAcquire(acquires);
@@ -158,13 +171,11 @@ newCondition
 
 # FairSync
 
-FairSync 是 ReentrantLock 的内部静态类，实现 Sync 抽象类，公平锁实现类。
+	FairSync 是 ReentrantLock 的内部静态类，实现 Sync 抽象类，公平锁实现类。
+	公平锁在获取同步状态时，会先判断即自己不是首个等待获取同步状态的节点
 
 ## lock
 	
-	#lock() 实现方法
-	直接执行 AQS 的正常的同步状态获取逻辑。
-
 	final void lock() {
 		acquire(1);
 	}
@@ -172,7 +183,7 @@ FairSync 是 ReentrantLock 的内部静态类，实现 Sync 抽象类，公平�
 ## tryAcquire
 
 	tryAcquire(int acquires) 实现方法，公平的方式，获得同步状态。
-
+代码
 
 	protected final boolean tryAcquire(int acquires) {
 		final Thread current = Thread.currentThread();
@@ -197,10 +208,12 @@ FairSync 是 ReentrantLock 的内部静态类，实现 Sync 抽象类，公平�
 
 ## hasQueuedPredecessors
 
-	比较非公平锁和公平锁获取同步状态的过程，会发现两者唯一的区别就在于，
-	公平锁在获取同步状态时多了一个限制条件 <1> 处的 
-	#hasQueuedPredecessors() 方法，是否有前序节点，即自己不是首个等待获取同步状态的节点。代码如下：
-	该方法主要做一件事情：主要是判断当前线程是否位于 CLH 同步队列中的第一个。如果是则返回 true ，否则返回 false 。
+作用
+
+	判断自己不是首个等待获取同步状态的节点
+	
+	
+代码
 
 	// AbstractQueuedSynchronizer.java
 	public final boolean hasQueuedPredecessors() {
@@ -214,6 +227,11 @@ FairSync 是 ReentrantLock 的内部静态类，实现 Sync 抽象类，公平�
 		return h != t &&
 				((s = h.next) == null || s.thread != Thread.currentThread());
 	}
+
+流程
+
+	没人排队，或者头结点的下一个节点就是自己
+
 
 
 # ReentrantLock 与 synchronized 的区别
