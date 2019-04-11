@@ -1,29 +1,40 @@
 
 
 
-2. 共享式
-共享式与独占式的最主要区别在于，同一时刻：
 
-独占式只能有一个线程获取同步状态。
-共享式可以有多个线程获取同步状态。
-例如，读操作可以有多个线程同时进行，而写操作同一时刻只能有一个线程进行写操作，其他操作都会被阻塞。参见 ReentrantReadWriteLock 。
+# AcquireShared
+
+流程
 
 
-
-# acquireShared
-
-public final void acquireShared(int arg) {
-    if (tryAcquireShared(arg) < 0)
-        doAcquireShared(arg);
-}
+	尝试获取共享锁
+	获取失败，线程自旋直到获得同步状态成功。
 
 
-调用 #tryAcquireShared(int arg) 方法，尝试获取同步状态，
-获取成功则设置锁状态并返回大于等于 0 ，否则获取失败，返回小于 0 。若获取成功，直接返回，不用线程阻塞，自旋直到获得同步状态成功。
+代码
 
-#tryAcquireShared(int arg) 方法，需要自定义同步组件自己实现，该方法必须要保证线程安全的获取同步状态
+	public final void acquireShared(int arg) {
+	    if (tryAcquireShared(arg) < 0)
+		doAcquireShared(arg);
+	}
 
-# doAcquireShared
+
+
+## tryAcquireShared
+
+	
+
+## doAcquireShared
+
+流程
+
+	将线程加入同步队列尾部，并自旋自省
+	如果前驱节点是头结点，则尝试获取同步锁
+	-设置新的首节点，并根据条件，唤醒下一个节点。
+	这里和独占式同步状态获取很大的不同：通过这样的方式，不断唤醒下一个共享式同步状态， 从而实现同步状态被多个线程的共享获取。
+
+
+代码
 
 	private void doAcquireShared(int arg) {
 		// 共享式节点
@@ -57,16 +68,16 @@ public final void acquireShared(int arg) {
 		}
 	}
 
+### addWaiter
 
-设置新的首节点，并根据条件，唤醒下一个节点。
-这里和独占式同步状态获取很大的不同：通过这样的方式，不断唤醒下一个共享式同步状态， 从而实现同步状态被多个线程的共享获取。
+### setHeadAndPropagate
+
+作用
+
+	设置新的首节点，并根据条件，唤醒下一个节点。
 
 
-# setHeadAndPropagate
-
-设置新的首节点，并根据条件，唤醒下一个节点。
-
-
+代码
 
 	private void setHeadAndPropagate(Node node, int propagate) {
 		Node h = head; // Record old head for check below
@@ -97,7 +108,26 @@ public final void acquireShared(int arg) {
 
 
 
-# doReleaseShared
+# releaseShared
+
+代码
+
+	public final boolean releaseShared(int arg) {
+	    if (tryReleaseShared(arg)) {
+	        doReleaseShared();
+	        return true;
+	    }
+	    return false;
+	}
+
+## doReleaseShared
+
+作用
+
+	唤醒后续的共享式获取同步状态的节点
+
+
+代码
 
 	private void doReleaseShared() {
 		/*
@@ -122,9 +152,9 @@ public final void acquireShared(int arg) {
 				}
 				else if (ws == 0 &&
 						 !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))
-					continue;                // loop on failed CAS
+					continue;           
 			}
-			if (h == head)                   // loop if head changed
+			if (h == head)                  
 				break;
 		}
 	}
