@@ -12,28 +12,30 @@
 	当同步状态释放时，会把首节点唤醒（公平锁），使其再次尝试获取同步状态。
 
 
-# 
+# 结构
 
 
-QS IFO 的双向队列，其内部通过节点 head tail
-首和队尾元素，队列元素的类型为 ode 其中 Node 中的 thread 变量用来存放进入 AQS
-队列里面的线程：
+	QS IFO 的双向队列，其内部通过节点 head tail首和队尾元素，
+	队列元素的类型为 ode 其中 Node 中的 thread 变量用来存放进入 AQS队列里面的线程：
 
 
 
 
 # Node
 
-prev 记录当前节点的前驱节点， next 记录当前节点的后继节点
+	prev 记录当前节点的前驱节点， next 记录当前节点的后继节点
 
-SHARED 用来标记该线程是获取共 资源时被阻挂起后放入 QS 队列的， 
-EXCLUSIVE 用来标记线程是 取独占资源时被挂起后放入AQS 队列的
+	SHARED 用来标记该线程是获取共 资源时被阻挂起后放入 QS 队列的， 
+	EXCLUSIVE 用来标记线程是 取独占资源时被挂起后放入AQS 队列的
 
-waitStatu 记录当前线程等待状态，
-CANCELLED （线程被取消了）、
-SIGNAL 线程需要被唤醒）、 
-ONDITION （线程在条件队列里面等待〉
-PROPAGATE （释放共享资源时需要通知其他节点〕；
+	waitStatu 记录当前线程等待状态，
+	用来控制线程的阻塞和唤醒，并且可以避免不必要的调用LockSupport的 #park(...) 和 #unpark(...) 方法。
+	不仅仅指的是 Node 自己的线程的等待状态，也可以是下一个节点的线程的等待状态。
+	CANCELLED （线程被取消了）、
+	SIGNAL 线程需要被唤醒）、 
+	ONDITION （线程在条件队列里面等待〉
+	PROPAGATE （释放共享资源时需要通知其他节点〕；
+	INITAL ，值为 0 ，初始状态。
 
 
 	static final class Node {
@@ -111,7 +113,15 @@ predecessor
 
 入列
 
-	通过 CAS 的方式，来保证并发下正确的添加 Node
+	通过CAS修改对象字段的方式，来保证并发下正确的添加 Node
+
+流程
+
+	将当前线程以及相应模式，构造成一个节点Node
+	尾节点存在，直接通过CAS在同步队列尾部添加节点
+	否则进入循环添加模式
+	如果尾节点为空,则先添加一个空节点为头结点
+	如果尾节点不为空，那么并发下使用CAS算法将当前Node追加成为尾节点
 
 
 代码
@@ -161,10 +171,34 @@ predecessor
 		}
 	}
 
-流程
 
-	通过CAS在同步队列尾部添加节点
-	如果队列为空,则先添加一个空节点为头结点
+
+## compareAndSetTail
+
+作用
+
+	通过CAS方法原子修改对象字段
+
+代码
+
+	private static final Unsafe unsafe = Unsafe.getUnsafe();
+
+	private static final long tailOffset = unsafe.objectFieldOffset (AbstractQueuedSynchronizer.class.getDeclaredField("tail")); 
+
+	private final boolean compareAndSetTail(Node expect, Node update) {
+	    return unsafe.compareAndSwapObject(this, tailOffset, expect, update);
+	}
+
+## compareAndSetHead
+
+代码
+
+	private static final long headOffset = unsafe.objectFieldOffset (AbstractQueuedSynchronizer.class.getDeclaredField("head")); 
+
+	private final boolean compareAndSetHead(Node update) {
+	    return unsafe.compareAndSwapObject(this, headOffset, null, update);
+	}
+
 
 # setHead
 
