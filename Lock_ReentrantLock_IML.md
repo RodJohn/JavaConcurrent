@@ -22,6 +22,7 @@
 	
 # ReentrantLock
 
+	ReentrantLock委托内部的Sync实现了Lock接口
 
 构造方法
  
@@ -59,9 +60,7 @@ newCondition
 
 # Sync
 
-	Sync抽象类
-	Sync实现同步器(AbstractQueuedSynchronizer)。
-	它使用 AQS 的 state 字段，来表示当前锁的持有数量，从而实现可重入的特性。
+	Sync继承了AQS作为同步队列提供尝试获取锁，和获取锁失败后的线程自旋和自省机制
 
 ## lock
 
