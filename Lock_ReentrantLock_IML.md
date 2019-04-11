@@ -6,15 +6,18 @@
 
 
 	ReentrantLock委托内部的Sync实现了Lock接口
-	Sync继承了AQS作为同步队列
+	Sync继承了AQS作为同步队列提供尝试获取锁，和获取锁失败后的线程自旋和自省机制
 	Sync的子类NonfairSync和FairSync分别提供了公平和非公平的获取方式
-	
+
+        NonfairSync在lock和tryAchive都是直接CAS抢占state
+	FairSync在lock时调用achive，tryAcquire先判断自己是不是首个等待的节点
+		
 	ReentrantLock的State
 	当 state = 0 时，表示锁未被占用。
-	当 state > 0 时，表示锁已经占用。 数值表示线程的重入次数
-
-
-	
+	当 state > 0 时，表示锁已经占用。 	
+	抢占锁时，需要将state 从0设置为1，同时设置当前线程为独占线程
+	当前线程为独占线程时，可以重入锁,state表示线程的重入次数
+	释放锁时,每次将state自减1，state为0时，退出对锁的占用
 	
 	
 # ReentrantLock
