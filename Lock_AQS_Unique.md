@@ -4,8 +4,15 @@
 
 作用
 
-	独占式获取锁
-	
+	独占式获取锁，获取失败线程将进入自旋和自省
+流程
+
+	尝试获取锁（tryAcquire）
+	如果获取失败，
+	将当前线程加到同步队列尾部（addWaiter）
+	并且自旋直到获得同步状态成功（acquireQueued）（当前线程的前驱节点是头结点时，会再次尝试获取锁）
+	同时也会检测线程是否需要休眠
+		
 代码
 
 	public final void acquire(int arg) {
@@ -14,31 +21,28 @@
 		  selfInterrupt();
 	}
 
-流程
 
-	尝试获取锁（tryAcquire）
-	如果获取失败，
-	将当前线程加到同步队列尾部（addWaiter）
-	并且自旋直到获得同步状态成功（acquireQueued）（当前线程的前驱节点是头结点时，会再次尝试获取锁）
-	同时也会检测线程是否需要休眠
-	
 
 
 
 ## tryAcquire
 
-	tryAcquire(int arg) 
-	需要自定义同步组件自己实现，该方法必须要保证线程安全的获取同步状态 
+	/子类提供的尝试获取锁的方法
 
 ## addWaiter
 
-	将当前线程加入到 CLH 同步队列尾部
+	通过CAS修改对象字段的方式，将当前线程加入到同步队列尾部
 	（AQS内部Node的方法）
 
 ## acquireQueued
 
+作用
+
 	自旋直到获得同步状态成功
 	如果发现当前线程的前驱节点是头结点，且同步状态成功
+
+
+代码
 
 	final boolean acquireQueued(final Node node, int arg) {
 		// 记录是否获取同步状态成功
@@ -74,8 +78,12 @@
 
 ### shouldParkAfterFailedAcquire
 
+流程
+
 	靠前驱节点判断当前线程是否应该被阻塞
-	
+
+代码
+
 	private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
 		// 获得前一个节点的等待状态
 		int ws = pred.waitStatus;
@@ -125,17 +133,17 @@
 
 
 
-
-
-
-
-
 # release
 
 作用
 
 	释放独占式锁
+	
+流程
 
+	释放锁
+	唤醒同步队列的头结点的下一个节点
+	
 代码
 
 	public final boolean release(int arg) {
@@ -147,11 +155,7 @@
 		}
 		return false;
 	}
-	
-流程
 
-	释放锁
-	唤醒同步队列的头结点的下一个节点
 
 ## tryRelease
 
@@ -159,6 +163,11 @@
 
 
 ## unparkSuccessor
+
+流程
+
+
+代码
 
 	private void unparkSuccessor(Node node) {
 	    //当前节点状态
